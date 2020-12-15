@@ -174,7 +174,7 @@ class MNIST_DCGAN(object):
                                      noise=noise_input, step=(i + 1))
 
     def plot_images(self, save2file=False, fake=True, samples=16, noise=None, step=0):
-        filename = 'mnist.png'
+        filename = 'output/mnist.png'
         if fake:
             if noise is None:
                 noise = np.random.uniform(-1.0, 1.0, size=[samples, 100])

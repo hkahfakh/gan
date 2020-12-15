@@ -39,7 +39,7 @@ def pre_processing():
     f.close()
 
     a = np.array(data)
-    np.save("a.npy", a)  # 保存为.npy格式
+    np.save("dataSet/a.npy", a)  # 保存为.npy格式
 
 
 def get_NSLKDD_data():
