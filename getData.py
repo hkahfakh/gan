@@ -63,7 +63,7 @@ def data_UNSW_npy(data, saveFlag=0):
                'snmp', 'ssh', 'ssl']
     # 连续变量为1
     continuous = [0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,
-                  0, 1, 1, 1, 1, 1, 1, 1, 1]
+                  0, 1, 1, 1, 1, 1, 1, 1, 0]
     data = data[:, 5:]
     # 非数字字符串转为数字
     for i in range(data.shape[0]):
@@ -169,4 +169,4 @@ def get_data(path):
 
 
 if __name__ == '__main__':
-    gen_KDD_npy()
+    gen_UNSW_npy()
