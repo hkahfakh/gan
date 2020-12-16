@@ -37,6 +37,7 @@ def data_UNSW_txt(saveFlag=0):
     return a
 
 
+# 因为最后是需要检测数据是否为恶意   并不需要确定是哪种攻击
 def data_UNSW_npy(data, saveFlag=0):
     # 前四个感觉不需要保存了   因为ip和端口好像没意义
     proto = ['3pc', 'a/n', 'aes-sp3-d', 'any', 'argus', 'aris', 'arp', 'ax.25', 'bbn-rcc', 'bna', 'br-sat-mon', 'cbt',
@@ -70,6 +71,7 @@ def data_UNSW_npy(data, saveFlag=0):
         data[:, 8][i] = service.index(data[:, 8][i])
         data[:, 42][i] = attack_cat.index(data[:, 42][i])
 
+    data = np.delete(data, -2, axis=1)  # 因为只需要判断数据是否为恶意所以不需要具体攻击标签
     data = data.astype(np.float64)
 
     for j in range(len(continuous)):
@@ -111,8 +113,9 @@ def data_KDD_npy(data, saveFlag=0):
                'urp_i', 'uucp', 'uucp_path', 'vmnet', 'whois']
     flag = ['OTH', 'REJ', 'RSTO', 'RSTOS0', 'RSTR', 'S0', 'S1', 'S2', 'S3', 'SF', 'SH']
     # 标签
-    dst_host_srv_rerror_rate = ['back', 'buffer_overflow', 'ftp_write', 'guess_passwd', 'imap', 'ipsweep', 'land',
-                                'loadmodule', 'multihop', 'neptune', 'nmap', 'normal', 'phf', 'pod', 'portsweep',
+    dst_host_srv_rerror_rate = ['normal', 'back', 'buffer_overflow', 'ftp_write', 'guess_passwd', 'imap', 'ipsweep',
+                                'land',
+                                'loadmodule', 'multihop', 'neptune', 'nmap', 'phf', 'pod', 'portsweep',
                                 'rootkit', 'satan',
                                 'smurf', 'spy', 'teardrop', 'warezclient', 'warezmaster']
 
@@ -127,7 +130,11 @@ def data_KDD_npy(data, saveFlag=0):
         data[:, 1][i] = protocol_type.index(data[:, 1][i])
         data[:, 2][i] = service.index(data[:, 2][i])
         data[:, 3][i] = flag.index(data[:, 3][i])
-        data[:, -1][i] = dst_host_srv_rerror_rate.index(data[:, -1][i])
+        # 恶意数据 标记为1
+        if dst_host_srv_rerror_rate.index(data[:, -1][i]) == 0:
+            data[:, -1][i] = 0
+        else:
+            data[:, -1][i] = 1
 
     data = data.astype(np.float64)
 
@@ -147,7 +154,6 @@ def value_category(data):
 
 def gen_KDD_npy():
     data = data_KDD_txt()
-    value_category(data)
     data_KDD_npy(data, saveFlag=1)
 
 
