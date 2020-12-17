@@ -27,7 +27,7 @@ class GAN(object):
         self.DM = None  # discriminator model
         self.GM = None  # generator model
         self.AM = None  # adversarial model
-        self.AM_dual = None  # adversarial model
+        self.CM = None  # classifer model
 
     # 这意思应该是生成16位的特征   供辨别器分辨
     def generator(self):
@@ -70,6 +70,12 @@ class GAN(object):
 
         return self.D
 
+    def domain_loss(self):
+        pass
+
+    def class_loss(self):
+        pass
+
     # 输出的是正常或恶意数据的概率
     def generator_model(self):
         if self.GM:
@@ -108,8 +114,19 @@ class GAN(object):
         self.AM.compile(loss='binary_crossentropy', optimizer=Adam(0.0002, 0.5))
         return self.AM
 
+    def classifer_model(self):
+        if self.CM:
+            return self.CM
 
-def train_GAN(gan, epochs=300, batch_size=32):
+        optimizer = Adam(lr=0.001, decay=0.999)
+        self.CM = Sequential(name="classifer_model")
+        self.CM.add(self.generator())
+        self.CM.add(Dense(1, activation='sigmoid'))  # 二分类所以加了这个
+        self.CM.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+        return self.CM
+
+
+def train_GAN(gan, epochs=300, batch_size=32, loadWeights=1):
     # Loading the data
     UNSW_data = get_data("./dataSet/UNSW_finally.npy")
     X, y = UNSW_data[:, :-1], UNSW_data[:, -1]
@@ -124,36 +141,54 @@ def train_GAN(gan, epochs=300, batch_size=32):
 
     # Creating GAN
     generator = gan.generator_model()
+    classification = gan.classifer_model()
     discriminator = gan.discriminator_model()
     GAN = gan.adversarial_model()
 
-    for i in range(1, epochs + 1):
-        print("Epoch %d" % i)
+    if loadWeights == 1:
+        GAN.load_weights("./output/gan_weight.h5", by_name=True)
+        classification.load_weights('./output/class_classifer_weight.h5')
+    else:
+        for i in range(1, epochs + 1):
+            print("Epoch %d" % i)
 
-        for _ in tqdm(range(batch_size)):
-            # Generate fake images from random noiset
-            target_data = UNSW_X_train[np.random.randint(0, UNSW_X_train.shape[0], batch_size)]
-            target_data = generator.predict(target_data)
-            # Select a random batch of real images from MNIST
-            source_data = KDD_X_train[np.random.randint(0, KDD_X_train.shape[0], batch_size)]
-            source_data = generator.predict(source_data)
+            for _ in tqdm(range(batch_size)):
+                # Generate fake images from random noiset
+                target_data = UNSW_X_train[np.random.randint(0, UNSW_X_train.shape[0], batch_size)]
+                target_data = generator.predict(target_data)
+                # Select a random batch of real images from MNIST
+                temp = np.random.randint(0, KDD_X_train.shape[0], batch_size)
+                class_X_train, class_y_train = KDD_X_train[temp], KDD_y_train[temp]
+                source_data = KDD_X_train[temp]
+                source_data = generator.predict(source_data)
 
-            # 假的图片为标签一串0   真的图片标签一串1
-            label_target = np.zeros(batch_size)
-            label_source = np.ones(batch_size)
+                # 假的图片为标签一串0   真的图片标签一串1
+                label_target = np.zeros(batch_size)
+                label_source = np.ones(batch_size)
 
-            # Concatenate fake and real images
-            X = np.concatenate([target_data, source_data])
-            y = np.concatenate([label_target, label_source])
+                # Concatenate fake and real images
+                X = np.concatenate([target_data, source_data])
+                y = np.concatenate([label_target, label_source])
 
-            # Train the discriminator
-            discriminator.trainable = True
-            discriminator.train_on_batch(X, y)
+                # 训练辨别器
+                generator.trainable = False
+                discriminator.trainable = True
+                discriminator.train_on_batch(X, y)
 
-            # Train the generator/chained GAN model (with frozen weights in discriminator)
-            discriminator.trainable = False
-            loss =GAN.train_on_batch(target_data, label_source)
-    # print(generator.evaluate(UNSW_X_train,  np.zeros(UNSW_X_train.shape[0])))
+                # 训练生成器(此时冻结辨别器权重)
+                generator.trainable = True
+                discriminator.trainable = False
+                GAN.train_on_batch(target_data, label_source)  # 就是训练生成器尽量使辨别器输出为1，也就是让辨别器一位他是源数据
+                classification.train_on_batch(class_X_train, class_y_train)
+
+        classification.save_weights('./output/class_classifer_weight.h5')
+        GAN.save_weights('./output/gan_weight.h5')
+
+    tt = np.random.randint(0, KDD_X_train.shape[0], 1)
+    t = KDD_X_train[tt]
+    t = classification.predict(t)
+    print("为攻击数据的概率", t)
+    print("是否为攻击数据", KDD_y_train[tt])
 
     target_data = UNSW_X_train[np.random.randint(0, UNSW_X_train.shape[0], 1)]
     target_data = generator.predict(target_data)
@@ -163,8 +198,4 @@ def train_GAN(gan, epochs=300, batch_size=32):
 # NSL-KDD作为源数据集，UNSW-NB15作为目标数据集
 # 两个数据集都转换到一个特征空间
 if __name__ == '__main__':
-    # nids_gan = NIDS_GAN()
-    # nids_gan.train(train_steps=16, batch_size=32, save_interval=500)
-    # nids_gan.plot_images(fake=True)
-    # nids_gan.plot_images(fake=False, save2file=True)
     train_GAN(GAN())
