@@ -19,7 +19,7 @@ def data_split(X, y, rate=0.9):
 
 
 def data_UNSW_txt(saveFlag=0):
-    f = open("./dataSet/UNSW-NB15_1.txt", encoding='utf-8')
+    f = open("./dataSet/UNSW-NB15.txt", encoding='utf-8')
     lines = f.readlines()
     f.close()
     lines[0] = lines[0][1:]  # 去掉了一个多余的符号
@@ -56,7 +56,7 @@ def data_UNSW_npy(data, saveFlag=0):
     state = ['ACC', 'CLO', 'CON', 'ECO', 'ECR', 'FIN', 'INT', 'MAS', 'PAR', 'REQ', 'RST', 'TST', 'TXD', 'URH', 'URN',
              'no']
     # 没有就是良性
-    attack_cat = ['', ' Fuzzers', 'Analysis', 'Backdoors', 'DoS', 'Exploits', 'Generic',
+    attack_cat = ['', 'Fuzzers', ' Shellcode ', 'Analysis', 'Backdoor', 'Backdoors', 'DoS', 'Exploits', 'Generic',
                   'Reconnaissance', 'Shellcode', 'Worms']
     # -是没有协议使用
     service = ['-', 'dhcp', 'dns', 'ftp', 'ftp-data', 'http', 'irc', 'pop3', 'radius', 'smtp',
@@ -69,11 +69,18 @@ def data_UNSW_npy(data, saveFlag=0):
     for i in range(data.shape[0]):
         data[:, 0][i] = state.index(data[:, 0][i])
         data[:, 8][i] = service.index(data[:, 8][i])
-        data[:, 42][i] = attack_cat.index(data[:, 42][i])
+        data[:, 42][i] = attack_cat.index(data[:, 42][i].replace(" ", ""))
 
-    data = np.delete(data, -2, axis=1)  # 因为只需要判断数据是否为恶意所以不需要具体攻击标签
+    data = np.delete(data, -2, axis=1)  # 因为只需要判断数据是否为恶意所以不需要具体攻击标签+
+    print(np.unique(data[:, 34]))
+    # data = np.delete(data, 34, axis=1)
+    data[data == " "] = '0'
+    data[data == ""] = '0'
+
     data = data.astype(np.float64)
-
+    # 如果数据集出现了问题很有可能是这些警告的事
+    # UserWarning: Numerical issues were encountered when centering the data and might not be solved. Dataset may contain too large values. You may need to prescale your features.
+    #   warnings.warn("Numerical issues were encountered "
     for j in range(len(continuous)):
         if continuous[j] == 1:
             data[:, j] = standardization(data[:, j])
@@ -83,7 +90,7 @@ def data_UNSW_npy(data, saveFlag=0):
 
 
 def data_KDD_txt(saveFlag=0):
-    f = open(".\dataSet\KDDTrain+_20Percent.txt")
+    f = open(".\dataSet\KDDALL.txt")
     lines = f.readlines()
     f.close()
     data = list()
@@ -103,28 +110,35 @@ def data_KDD_txt(saveFlag=0):
 def data_KDD_npy(data, saveFlag=0):
     # 属性   1  2  3
     protocol_type = ['tcp', 'icmp', 'udp']
-    service = ['IRC', 'X11', 'Z39_50', 'auth', 'bgp', 'courier', 'csnet_ns', 'ctf', 'daytime', 'discard', 'domain',
-               'domain_u', 'echo', 'eco_i', 'ecr_i', 'efs', 'exec', 'finger', 'ftp', 'ftp_data', 'gopher', 'hostnames',
-               'http', 'http_443', 'http_8001', 'imap4', 'iso_tsap', 'klogin', 'kshell', 'ldap', 'link', 'login', 'mtp',
+    service = ['IRC', 'X11', 'Z39_50', 'aol', 'auth', 'bgp', 'courier', 'csnet_ns', 'ctf', 'daytime', 'discard',
+               'domain',
+               'domain_u', 'echo', 'eco_i', 'ecr_i', 'efs', 'exec', 'finger', 'ftp', 'ftp_data', 'gopher', 'harvest',
+               'hostnames',
+               'http', 'http_2784', 'http_443', 'http_8001', 'imap4', 'iso_tsap', 'klogin', 'kshell', 'ldap', 'link',
+               'login', 'mtp',
                'name', 'netbios_dgm',
                'netbios_ns', 'netbios_ssn', 'netstat', 'nnsp', 'nntp', 'ntp_u', 'other', 'pm_dump', 'pop_2', 'pop_3',
                'printer', 'private', 'red_i', 'remote_job', 'rje',
-               'shell', 'smtp', 'sql_net', 'ssh', 'sunrpc', 'supdup', 'systat', 'telnet', 'tim_i', 'time', 'urh_i',
+               'shell', 'smtp', 'sql_net', 'ssh', 'sunrpc', 'supdup', 'systat', 'telnet', 'tftp_u', 'tim_i', 'time',
+               'urh_i',
                'urp_i', 'uucp', 'uucp_path', 'vmnet', 'whois']
     flag = ['OTH', 'REJ', 'RSTO', 'RSTOS0', 'RSTR', 'S0', 'S1', 'S2', 'S3', 'SF', 'SH']
     # 标签
-    dst_host_srv_rerror_rate = ['normal', 'back', 'buffer_overflow', 'ftp_write', 'guess_passwd', 'imap', 'ipsweep',
-                                'land',
-                                'loadmodule', 'multihop', 'neptune', 'nmap', 'phf', 'pod', 'portsweep',
-                                'rootkit', 'satan',
-                                'smurf', 'spy', 'teardrop', 'warezclient', 'warezmaster']
+    dst_host_srv_rerror_rate = ['apache2', 'back', 'buffer_overflow', 'ftp_write', 'guess_passwd'
+        , 'httptunnel', 'imap', 'ipsweep', 'land', 'loadmodule', 'mailbomb', 'mscan'
+        , 'multihop', 'named', 'neptune', 'nmap', 'normal', 'perl', 'phf', 'pod'
+        , 'portsweep', 'processtable', 'ps', 'rootkit', 'saint', 'satan', 'sendmail'
+        , 'smurf', 'snmpgetattack', 'snmpguess', 'spy', 'sqlattack', 'teardrop'
+        , 'udpstorm', 'warezclient', 'warezmaster', 'worm', 'xlock', 'xsnoop', 'xterm']
 
     # 连续变量为1   第一个照着论文最后打的   论文上表好像不对
     continuous = [1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                   1, 1, 1, 1, 1, 1, 1, 0]
     continuous = [1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                   1, 1, 1, 1, 1, 1, 1, 0]
+
     data = data[:, :-1]
+    # print(np.unique(data[:, -1]))
     # 非数字字符串转为数字
     for i in range(data.shape[0]):
         data[:, 1][i] = protocol_type.index(data[:, 1][i])
@@ -159,6 +173,7 @@ def gen_KDD_npy():
 
 def gen_UNSW_npy():
     data = data_UNSW_txt()
+    # value_category(data)
     data_UNSW_npy(data, saveFlag=1)
 
 
@@ -169,4 +184,5 @@ def get_data(path):
 
 
 if __name__ == '__main__':
-    gen_UNSW_npy()
+    # gen_UNSW_npy()
+    gen_KDD_npy()
