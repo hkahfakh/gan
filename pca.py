@@ -18,7 +18,6 @@ def dimensionReduction(X,dim=10):
     pca = PCA(n_components=dim)
     # X_pca:降维后的X
     X_pca = pca.fit_transform(X)
-    print(pca.noise_variance_)
     return X_pca
 
 if __name__ == '__main__':
